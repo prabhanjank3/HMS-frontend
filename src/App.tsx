@@ -1,5 +1,5 @@
-import NewAppointment from "./components/appointments/new/NewAppointment";
 import User from "./components/users/New/index";
+import Dashboard from "./pages/dashboard/Dashboard";
 import "./styles.css";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import PrivateRoute from "./routes/privateRoutes";
@@ -11,16 +11,16 @@ export default function App() {
   let isAuthorized = true;
   let isLoading = false;
 
-  const NewAppointmentHoc = withOverlay(withAuthorized(NewAppointment));
+  const DashboardHOC = withOverlay(withAuthorized(Dashboard));
   return (
     <BrowserRouter>
       <div style={{ margin: "20px" }}>
         <Routes>
           <Route
-            path="/appointment/new"
+            path="/"
             element={
               <PrivateRoute>
-                <NewAppointmentHoc
+                <DashboardHOC
                   isAuthorized={isAuthorized}
                   isLoading={isLoading}
                 />

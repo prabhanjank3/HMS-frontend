@@ -1,9 +1,10 @@
 import AbstractDB from "./abstractDB";
 
 export default interface Appointment extends AbstractDB {
-  patientId: string;
-  doctorId: string;
-  startDateTime: string;
-  endDateTime: string;
+  patientid: string ;
+  opdid: string;
+  date: string,
+  slot:Number,
+  time:string,
   reason: string;
 }

@@ -1,12 +1,12 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-const SERVER_URL = "https://mdzlv4-8080.preview.csb.app";
+const SERVER_URL = 'http://localhost:3000';
 
 const fetchUserDetails = createAsyncThunk(
   "user/details",
   async (id: number) => {
-    const response = await axios.get(SERVER_URL + "/users/" + id);
+    const response = await axios.get(SERVER_URL + "/user/" + id);
     return response.data;
   }
 );
@@ -21,7 +21,7 @@ const authenticateUser = createAsyncThunk(
     email: string;
     password: string;
   }) => {
-    const response = await axios.get(SERVER_URL + "/users/1");
+    const response = await axios.post(SERVER_URL + "/auth/login",{role,email,password});
     return response.data;
   }
 );

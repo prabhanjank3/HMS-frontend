@@ -1,118 +1,106 @@
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
 import {
-  Autocomplete,
-  TextField,
-  createFilterOptions,
   Button
 } from "@mui/material";
-import { addMinutes } from "date-fns";
-import { roundToNearestMinutes } from "date-fns/esm";
 import Appointment from "../../../models/appointment";
+import { fetchOpdSelectionInfo } from "../../../store/actions/opdActions";
+import { useDispatch, useSelector } from "react-redux";
+import {RootState, AppDispatch} from '../../../store/index';
+import SelectOptions from "../../../models/selectOptions";
+import { fetchScheduledSlots } from "../../../apis/apis";
+import { createSlots, deleteFromArrayIndexes } from "../../shared/helpers/helpers";
+import OneForm from "../../forms/OneForm";
+import newAppointmentFields from "../../forms/fields/NewAppointment";
+import { createDefaultValuesFromFieldSet } from "../../shared/helpers/helpers";
+import { scheduleAppointment } from "../../../apis/apis";
+import { fetchAllAppointmentsDetails } from "../../../store/actions/patientActions";
 
-const users = [
-  { label: "API123-Prabhanjan Kulkarni", value: "API123" },
-  { label: "API124-Anuj Kulkarni", value: "API124" }
-];
-const doctors = [
-  { label: "527384-Shashikant Apte", value: "527384" },
-  { label: "527385-Ajit Kulkarni", value: "527385" }
-];
+const initialValues:Appointment = createDefaultValuesFromFieldSet(newAppointmentFields)
 
-const NewAppointment = () => {
-  const startDateTime = roundToNearestMinutes(new Date(), { nearestTo: 15 });
-  const endDateTime = addMinutes(startDateTime, 15);
+type CallbackFunction = () => void;
 
-  const [newAppointment, setNewAppointment] = useState<Appointment>({
-    id: "",
-    patientId: "",
-    doctorId: "",
-    startDateTime: startDateTime.toISOString().replace("Z", ""),
-    endDateTime: endDateTime.toISOString().replace("Z", ""),
-    reason: ""
-  });
-  const filterOptions = createFilterOptions({
-    limit: 5
-  });
-  const handleChange = (e: any, value: any) => {
-    console.log(e);
-  };
+const NewAppointment = ({onFinish}:{onFinish:CallbackFunction}) => {
+
+  const [data, setData] = useState<Appointment>(initialValues);
+  const [fieldState, setFieldState] = useState(newAppointmentFields);
+  const [slotOptions, setSlotOptions] = useState<SelectOptions[]>([]);
+  const patientid = useSelector((state:RootState) => state.user.currentUser['patient.id'])
+
+  const dispatch = useDispatch<AppDispatch>();
+  const OpdOptions: SelectOptions[] = [];
+  
+  const ref = useRef();
+
+  const userOptions = useSelector((state:RootState) => {
+    return [{label:`${state.user.currentUser.firstname} ${state.user.currentUser.lastname}`, id:state.user.currentUser['patient.id']}] 
+  })
+  const opdData = useSelector((state:RootState) => {
+    const opdLookup:any = {};
+    (state?.opd?.opdSelection || []).forEach((usr:any) => {
+      opdLookup[usr.doctor.opd.id] = usr.doctor.opd;
+      OpdOptions.push({label:`${usr.firstname} ${usr.lastname} - ${usr.doctor.opd.name}`, id:usr.doctor.opd.id})
+    })
+    return opdLookup;
+  })
+  const setFieldOptions = (fields:any[], rowIndex:number, columnIndex:number, value:SelectOptions[]) => {
+    fields[rowIndex]['fields'][columnIndex]['options'] = value;
+  }
+  setFieldOptions(newAppointmentFields,0,0,userOptions);
+  setFieldOptions(newAppointmentFields,0,1,OpdOptions);
+  
+  useEffect(() => {
+    dispatch(fetchOpdSelectionInfo())
+  },[]);
+  
+  useEffect(() => {
+    if(data.opdid && data.date)
+    {
+      fetchScheduledSlots(data.opdid,data.date).then(resp => {
+        const slots = createSlots(opdData[data.opdid].timing,opdData[data.opdid].consultationtime);
+        const temp = deleteFromArrayIndexes(slots, resp.data);
+        setSlotOptions(temp)
+        setFieldOptions(newAppointmentFields,1,1,temp);
+        setFieldState([...newAppointmentFields])
+      })
+    }
+  },[data.date,data.opdid]);
+  
+  useEffect(() => {
+    if(data.slot !== -1)
+    {
+      const time = (slotOptions).filter((slot) => slot.id == data.slot)[0].label
+      setData({...data, time:time})
+    }
+  },[data.slot])
+ 
+  const handleSubmit = (values:any) => {
+    scheduleAppointment(data).then(data => {
+      dispatch(fetchAllAppointmentsDetails(patientid))
+    })
+    setData(initialValues);
+    handleCancel();
+  }
+  const handleCancel = () => {
+    if(onFinish)
+    onFinish();
+  }
+  const trackValues = (values:any) => {
+    setData({...data, ...values})
+  }
+  const getButtonWithSubmitRef = (ref:any) => {
+    return  <Button ref={ref} variant='contained' sx={{marginRight:'10px'}}>Submit</Button>
+  }
   return (
     <Box>
-      <Grid container spacing={2}>
-        <Grid item xs={6}>
-          <Autocomplete
-            filterOptions={filterOptions}
-            size="small"
-            options={users}
-            onChange={(e: any, value: any) => handleChange(e, value)}
-            renderInput={(params) => (
-              <TextField {...params} label="Select User" />
-            )}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <Autocomplete
-            filterOptions={filterOptions}
-            size="small"
-            options={doctors}
-            renderInput={(params) => (
-              <TextField {...params} label="Select Doctor" />
-            )}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            id="datetime-local"
-            style={{ width: "100%" }}
-            label="Start Time"
-            type="datetime-local"
-            defaultValue={startDateTime.toISOString().replace("Z", "")}
-            sx={{ width: 250 }}
-            InputLabelProps={{
-              shrink: true
-            }}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            style={{ width: "100%" }}
-            id="datetime-local"
-            label="End Time"
-            type="datetime-local"
-            defaultValue={endDateTime.toISOString().replace("Z", "")}
-            sx={{ width: 250 }}
-            InputLabelProps={{
-              shrink: true
-            }}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            style={{ marginBottom: "10px" }}
-            fullWidth
-            id="outlined-basic"
-            label="Reason"
-            variant="outlined"
-            size="small"
-            multiline
-            rows={3}
-          />
-        </Grid>
-      </Grid>
-      <Grid container spacing={1} style={{ marginLeft: "28%" }}>
-        <Grid item>
-          <Button color="success" variant="contained">
-            Submit
-          </Button>
-        </Grid>
-        <Grid item>
-          <Button color="error" variant="contained">
-            Cancel
-          </Button>
-        </Grid>
-      </Grid>
+      <OneForm ref= {ref} fieldSet={fieldState} handleSubmit={handleSubmit} renderActionButtons={
+        <div style={{textAlign:'center'}}>
+        {getButtonWithSubmitRef(ref)}
+        <Button variant='contained'>Cancel</Button>
+        </div>
+      } 
+      trackValues={trackValues}
+      />
     </Box>
   );
 };

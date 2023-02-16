@@ -1,11 +1,11 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { fetchUserDetails, authenticateUser } from "../actions/userActions";
-import User from "../models/user";
+import User from "../../models/user";
 
 interface UserState {
-  currentUser: User | null;
+  currentUser: any;
   selectedUser: User | null;
-  isLoggedIn?: boolean;
+  isLoggedIn: boolean;
   isLoading: boolean;
   error: string | null;
 }
@@ -22,7 +22,11 @@ const sampleSlice = createSlice({
   initialState,
   reducers: {
     setUserLoggedOut(state) {
-      state.isLoggedIn = false;
+      state.currentUser = null,
+      state.selectedUser = null,
+      state.isLoggedIn = false,
+      state.isLoading = false,
+      state.error = null
     }
   },
   extraReducers(builder) {
@@ -34,25 +38,34 @@ const sampleSlice = createSlice({
     );
     builder.addCase(
       authenticateUser.fulfilled,
-      (state, { payload }: PayloadAction<User>) => {
-        state.currentUser = payload;
-        state.isLoggedIn = true;
+      (state, { payload }: PayloadAction<User[]>) => {
+        if(payload.length > 0)
+        {
+          // To be changed. Logic to add role of user in currentUser
+          state.currentUser = payload[0];
+          state.isLoggedIn = true;
+          state.isLoading = false;
+        }
+        else{
+          state.error = 'No user found!'
+        }
       }
     );
     builder.addCase(
       authenticateUser.pending,
-      (state, { payload }: PayloadAction<User>) => {
+      (state) => {
         state.isLoading = true;
       }
     );
     builder.addCase(
       authenticateUser.rejected,
-      (state, { payload }: PayloadAction<User>) => {
+      (state) => {
         state.error = "Something went wrong while fetching users";
+        state.isLoading = false;
       }
     );
   }
 });
 // export actions and reducer.
-export const { setUserLoggedIn } = sampleSlice.actions;
+export const { setUserLoggedOut } = sampleSlice.actions;
 export default sampleSlice.reducer;

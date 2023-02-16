@@ -1,12 +1,15 @@
-import { configureStore, combineReducers, Action } from "@reduxjs/toolkit";
+import { configureStore, combineReducers, Action, getDefaultMiddleware } from "@reduxjs/toolkit";
 import ReduxThunk, { ThunkAction } from "redux-thunk";
-import logger from "redux-logger";
+import logger from 'redux-logger';
 import user from "./slices/userSlice";
+import opd from './slices/opdSlices';
+import utils from './slices/componentSlice';
+import patient from './slices/patientSlice';
 
-const rootReducer = combineReducers({ user });
+const rootReducer = combineReducers({ user,opd, utils, patient });
 const store = configureStore({
   reducer: rootReducer,
-  middleware: [ReduxThunk, logger]
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(ReduxThunk,logger) 
 });
 
 export type AppDispatch = typeof store.dispatch;

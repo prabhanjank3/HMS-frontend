@@ -1,13 +1,14 @@
-import { faker } from "@faker-js/faker/locale/en";
+export const ROLES = {
+  DOCTOR:101,
+  PATIENT:102
+}
+export const PERMISSIONS = {
+  CAN_CREATE_APPOINTMENT:1001,
+  CAN_DELETE_APPOINTMENT:1002,
+  CAN_UPDATE_APPOINTMENT:1003,
 
-// This file has nothing to do with Redux
-// It exports functions that create random
-// movies and song
+  CAN_CREATE_DOCTOR:1004,
+  CAN_CREATE_PATIENT:1005,
+  CAN_CREATE_USER:1006
 
-export const createRandomMovie = () => {
-  return `${faker.word.adjective()} ${faker.word.noun()}`;
-};
-
-export const createRandomSong = () => {
-  return faker.music.songName();
-};
+}
